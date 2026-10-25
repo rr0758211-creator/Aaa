@@ -1,0 +1,6 @@
+{
+  "name": "Depth Wallpaper",
+  "description": "Native Android anime wallpaper experience powered by Wallhaven API with Coil image caching, infinite scroll, full-screen preview, and Room-backed favorites.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
