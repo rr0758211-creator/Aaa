@@ -8,19 +8,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      - uses: oven-sh/setup-bun@v2
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
-      - run: npm install
-      - run: npm run build
-      - run: npm install @capacitor/core @capacitor/cli @capacitor/android
-      - run: npx cap init "Depth Wallpaper" com.depth.wallpaper --web-dir dist
-      - run: npx cap add android
-      - run: npx cap sync android
+      - run: bun install
+      - run: bun add @capacitor/core @capacitor/cli @capacitor/android
+      - run: bun run build
+      - name: Capacitor config
+        run: |
+          echo '{"appId":"com.depth.wallpaper","appName":"Depth Wallpaper","webDir":"dist"}' > capacitor.config.json
+      - run: bunx cap add android
+      - run: bunx cap sync android
       - run: |
           cd android
           chmod +x gradlew
