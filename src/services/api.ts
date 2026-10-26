@@ -1,65 +1,49 @@
+import { CapacitorHttp } from '@capacitor/core';
 import { Wallpaper, WallhavenResponse } from '../types/wallpaper';
+
+const BASE_QUERY = '+"anime boys" -"anime girls"';
 
 export async function fetchWallpapersFromApi(
   page: number = 1,
   query: string = ''
 ): Promise<WallhavenResponse> {
-  const url = new URL('/api/wallpapers/search', window.location.origin);
-  url.searchParams.set('page', page.toString());
-  if (query.trim()) {
-    url.searchParams.set('q', query.trim());
+  const keyword = query.trim();
+  const fullQuery = keyword ? `${BASE_QUERY} ${keyword}` : BASE_QUERY;
+
+  const params: Record<string, string> = {
+    categories: '010',
+    purity: '100',
+    ratios: 'portrait',
+    q: fullQuery,
+    page: page.toString(),
+  };
+  if (!keyword) {
+    params.sorting = 'favorites';
   }
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Accept: 'application/json',
-    },
+  const response = await CapacitorHttp.get({
+    url: 'https://wallhaven.cc/api/v1/search',
+    params,
+    headers: { Accept: 'application/json' },
   });
 
-  if (!response.ok) {
-    let errorMessage = `HTTP Error ${response.status}: ${response.statusText}`;
-    try {
-      const errJson = await response.json();
-      if (errJson.error) errorMessage = errJson.error;
-    } catch {
-      // ignore
-    }
-    throw new Error(errorMessage);
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`Wallhaven error: HTTP ${response.status}`);
   }
 
-  const data: WallhavenResponse = await response.json();
-  return data;
+  let data: any = response.data;
+  if (typeof data === 'string') {
+    try {
+      data = JSON.parse(data);
+    } catch {
+      throw new Error('Wallhaven se galat jawab aaya, dobara try karo.');
+    }
+  }
+
+  return data as WallhavenResponse;
 }
 
 export async function downloadWallpaperFile(wallpaper: Wallpaper): Promise<void> {
-  const filename = `depth_wallpaper_${wallpaper.id}.jpg`;
-  
-  // Use our backend proxy to trigger immediate download and bypass any cross-origin restrictions
-  const downloadUrl = `/api/wallpapers/download?url=${encodeURIComponent(wallpaper.path)}&filename=${encodeURIComponent(filename)}`;
-  
-  try {
-    const res = await fetch(downloadUrl);
-    if (!res.ok) throw new Error('Download failed through proxy');
-    
-    const blob = await res.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(blobUrl);
-  } catch (error) {
-    console.warn('Fallback direct download for wallpaper:', error);
-    // Fallback: open path in new tab or direct anchor
-    const a = document.createElement('a');
-    a.href = wallpaper.path;
-    a.target = '_blank';
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
+  // Android pe seedha image ko browser mein kholo, wahan se download/save ho jayegi
+  window.open(wallpaper.path, '_blank');
 }
